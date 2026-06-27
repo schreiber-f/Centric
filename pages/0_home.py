@@ -218,11 +218,8 @@ st.plotly_chart(
 )
 
 # -----------------------
-# Letzte Einkäufe
+# Einkäufe
 # -----------------------
-
-st.divider()
-st.subheader("🧾 Letzte Einkäufe")
 
 st.divider()
 st.subheader("🧾 Einkäufe")

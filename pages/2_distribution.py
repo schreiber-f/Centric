@@ -12,7 +12,10 @@ from services.item_service import (
     get_item_consumers,
     update_consumer,
     delete_consumer,
+    create_consumer,
+    recalculate_item_consumers,
 )
+import math
 
 st.title("⚖️ Artikel & Verteilung")
 
@@ -27,9 +30,13 @@ item_options = {
     for item in items
 }
 
+if "selected_item_id" not in st.session_state:
+    st.session_state.selected_item_id = items[0]["id"]
+
 selected_label = st.selectbox(
     "Artikel auswählen",
     options=list(item_options.keys()),
+    index=list(item_options.values()).index(st.session_state.selected_item_id),
 )
 
 item_id = item_options[selected_label]
@@ -162,31 +169,49 @@ if item:
 
     else:
 
-        edited = st.data_editor(
-            df,
-            hide_index=True,
-            use_container_width=True,
-            disabled=["consumer_id", "Person"],
-        )
-
-        total = edited["Wert"].sum()
-
         if modus == AufteilungsModus.PROZENT:
+            value = 100 / len(rows)
+            for i, row in df.iterrows():
+                df.loc[i, "Wert"] = st.slider(
+                    row["Person"],
+                    0.0,
+                    100.0,
+                    value,
+                    0.5,
+                    key=f"pct_{row['consumer_id']}",
+                )
 
+            total = df["Wert"].sum()
             valid = abs(total - 100) < 0.01
+
+            st.info(f"Summe: {total:.2f}%")
 
             if valid:
                 st.success("✓ 100 %")
             else:
                 st.error(f"Aktuell {total:.2f}%")
 
-            total = edited["Wert"].sum()
+            total = df["Wert"].sum()
 
         elif modus == AufteilungsModus.STUECKZAHL:
+            max_amount = float(item["menge"] or 0)
+            value = math.floor(len(rows) / max_amount)
+            for i, row in df.iterrows():
+                df.loc[i, "Wert"] = st.slider(
+                    row["Person"],
+                    0,
+                    int(max_amount),
+                    value,
+                    1,
+                    key=f"qty_{row['consumer_id']}",
+                )
 
-            max_amount = item["menge"] or 0
-
+            total = df["Wert"].sum()
             valid = total <= max_amount
+            if max_amount == 0:
+                valid = False
+
+            st.info(f"{total}/{max_amount}")
 
             if valid:
                 st.success(f"{total}/{max_amount}")
@@ -197,33 +222,88 @@ if item:
         "💾 Verteilung speichern",
         disabled=not valid,
     ):
-
-        for _, row in edited.iterrows():
-
-            update_consumer(
-                consumer_id=int(row["consumer_id"]),
-                modus=modus,
-                wert=float(row["Wert"]),
-            )
+        if modus == AufteilungsModus.GLEICHMAESSIG:
+            for r in rows:
+                update_consumer(consumer_id=int(r["consumer_id"]), modus=modus, wert=1)
+                recalculate_item_consumers(item_id)
+        else:
+            for _, row in df.iterrows():
+                update_consumer(
+                    consumer_id=int(row["consumer_id"]),
+                    modus=modus,
+                    wert=float(row["Wert"]),
+                )
 
         st.success("Verteilung gespeichert")
         st.rerun()
 
     st.divider()
-    st.subheader("🗑️ Teilnehmer")
+
+    ### Konsumer
+
+    st.subheader("👥 Konsumenten verwalten")
+
+    # -------------------------
+    # MAPS
+    # -------------------------
+    existing_user_ids = {c["user_id"] for c in consumers}
+
+    available_persons = [p for p in persons if p["id"] not in existing_user_ids]
 
     consumer_map = {person_lookup[c["user_id"]]: c["id"] for c in consumers}
 
-    selected_consumer = st.selectbox(
-        "Teilnehmer entfernen",
-        options=list(consumer_map.keys()),
-    )
+    # -------------------------
+    # ADD CONSUMER
+    # -------------------------
+    st.markdown("### ➕ Konsument hinzufügen")
 
-    if st.button("Teilnehmer entfernen"):
+    if available_persons:
 
-        delete_consumer(consumer_map[selected_consumer])
+        add_name = st.selectbox(
+            "Person auswählen",
+            options=[p["name"] for p in available_persons],
+        )
 
-        st.rerun()
+        if st.button("➕ Hinzufügen"):
+
+            user_id = next(p["id"] for p in available_persons if p["name"] == add_name)
+
+            create_consumer(
+                item_id=item_id,
+                user_id=user_id,
+                modus=modus,
+                wert=1.0,  # Defaultwert, wird später überschrieben
+            )
+            recalculate_item_consumers(item_id)
+
+            st.success(f"{add_name} hinzugefügt")
+            st.rerun()
+
+    else:
+        st.info("Alle Personen sind bereits Teilnehmer dieses Items")
+
+    # -------------------------
+    # DELETE CONSUMER
+    # -------------------------
+    st.subheader("🗑️ Konsument entfernen")
+
+    if consumers:
+
+        selected_consumer = st.selectbox(
+            "Teilnehmer entfernen",
+            options=list(consumer_map.keys()),
+        )
+
+        if st.button("🗑️ Entfernen"):
+
+            delete_consumer(consumer_map[selected_consumer])
+            recalculate_item_consumers(item_id)
+
+            st.success("Teilnehmer entfernt")
+            st.rerun()
+
+    else:
+        st.info("Keine Teilnehmer vorhanden")
 
     st.divider()
 
@@ -240,3 +320,14 @@ if item:
             st.rerun()
 else:
     st.error("Es konnte kein Item gefunden werden")
+
+if st.button("Nächstes Item"):
+    ids = list(item_options.values())
+    current_index = ids.index(st.session_state.selected_item_id)
+
+    if current_index + 1 < len(ids):
+        st.session_state.selected_item_id = ids[current_index + 1]
+    else:
+        st.session_state.selected_item_id = ids[0]
+
+    st.rerun()

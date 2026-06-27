@@ -49,6 +49,8 @@ def create_item(
                 )
             )
 
+        recalculate_item_consumers(item_id)
+
         session.refresh(item)
         return {
             "id": item.id,
@@ -273,3 +275,130 @@ def delete_item(item_id: int) -> bool:
         session.delete(item)
 
         return True
+
+
+def add_all_persons_as_consumers(
+    item_id: int,
+    persons: list[dict],
+    modus: AufteilungsModus = AufteilungsModus.GLEICHMAESSIG,
+):
+
+    with get_session() as session:
+
+        for p in persons:
+
+            existing = session.exec(
+                select(ItemConsumer).where(
+                    ItemConsumer.item_id == item_id,
+                    ItemConsumer.user_id == p["id"],
+                )
+            ).first()
+
+            if existing:
+                continue
+
+            session.add(
+                ItemConsumer(
+                    item_id=item_id,
+                    user_id=p["id"],
+                    modus=modus,
+                    wert=1.0,
+                )
+            )
+
+        session.commit()
+
+
+def create_consumer(
+    item_id: int,
+    user_id: int,
+    modus: AufteilungsModus = AufteilungsModus.GLEICHMAESSIG,
+    wert: float = 1.0,
+):
+    """
+    Fügt einen neuen Consumer zu einem Item hinzu.
+    """
+
+    with get_session() as session:
+
+        # optional: verhindern dass Person doppelt drin ist
+        existing = session.exec(
+            select(ItemConsumer).where(
+                ItemConsumer.item_id == item_id,
+                ItemConsumer.user_id == user_id,
+            )
+        ).first()
+
+        if existing:
+            raise ValueError("User ist bereits Consumer dieses Items")
+
+        consumer = ItemConsumer(
+            item_id=item_id,
+            user_id=user_id,
+            modus=modus,
+            wert=wert,
+        )
+
+        session.add(consumer)
+        session.flush()
+        session.refresh(consumer)
+
+        return {
+            "id": consumer.id,
+            "item_id": consumer.item_id,
+            "user_id": consumer.user_id,
+            "modus": consumer.modus,
+            "wert": consumer.wert,
+        }
+
+
+def recalculate_item_consumers(item_id: int):
+
+    with get_session() as session:
+
+        item = session.exec(
+            select(ItemConsumer).where(ItemConsumer.item_id == item_id)
+        ).all()
+
+        if not item:
+            return
+
+        mode = item[0].modus
+
+        # -------------------------
+        # GLEICHMÄSSIG
+        # -------------------------
+        if mode == AufteilungsModus.GLEICHMAESSIG:
+
+            count = len(item)
+            if count == 0:
+                return
+
+            for c in item:
+                c.wert = 1.0
+                session.add(c)
+
+        # -------------------------
+        # PROZENT
+        # -------------------------
+        elif mode == AufteilungsModus.PROZENT:
+
+            total = sum(c.wert for c in item)
+
+            if total == 0:
+                return
+
+            # normalisieren auf 100%
+            for c in item:
+                c.wert = (c.wert / total) * 100
+                session.add(c)
+
+        # -------------------------
+        # STÜCKZAHL
+        # -------------------------
+        elif mode == AufteilungsModus.STUECKZAHL:
+            # NICHT automatisch verändern
+            # nur Validierung wäre sinnvoll
+            pass
+
+        session.commit()
