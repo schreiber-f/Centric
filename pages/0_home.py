@@ -5,6 +5,8 @@ import plotly.express as px
 from services.person_service import get_all_persons
 from services.item_service import get_all_items
 from services.settlement_service import get_all_settlements
+from services.debt_service import calculate_debts
+from services.balance_service import get_balances, get_total_paid, get_total_consumed
 
 st.set_page_config(page_title="Centric Dashboard", layout="wide")
 
@@ -234,3 +236,124 @@ if not item_df.empty:
         display_df,
         use_container_width=True,
     )
+
+# Balance breakdown
+st.divider()
+st.subheader("📊 Finanzstruktur pro Person")
+
+rows = []
+
+for p in persons:
+    rows.append(
+        {
+            "name": p["name"],
+            "paid": get_total_paid(p["id"]) / 100,
+            "consumed": get_total_consumed(p["id"]) / 100,
+            "balance": get_balances().get(p["id"], 0) / 100,
+        }
+    )
+
+df = pd.DataFrame(rows)
+
+fig = px.bar(
+    df,
+    x="name",
+    y=["paid", "consumed", "balance"],
+    barmode="group",
+    title="💰 Paid vs Consumed vs Balance",
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+# Debt network flow
+st.divider()
+st.subheader("🔁 Optimale Geldflüsse")
+
+debts = calculate_debts()
+
+if debts:
+
+    debt_df = pd.DataFrame(debts)
+
+    debt_df = debt_df.merge(person_df, left_on="from_payer_id", right_on="id")
+    debt_df = debt_df.rename(columns={"name": "from"}).drop(columns=["id"])
+
+    debt_df = debt_df.merge(person_df, left_on="to_payer_id", right_on="id")
+    debt_df = debt_df.rename(columns={"name": "to"}).drop(columns=["id"])
+
+    debt_df["amount"] = debt_df["amount_cent"] / 100
+
+    fig = px.sunburst(
+        debt_df, path=["from", "to"], values="amount", title="🌐 Geldfluss Netzwerk"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+# Schuldverteilung
+st.divider()
+st.subheader("💸 Schuldverteilung")
+
+balances = get_balances()
+
+df = pd.DataFrame(
+    [{"name": p["name"], "balance": balances[p["id"]] / 100} for p in persons]
+)
+
+fig = px.treemap(
+    df,
+    path=["name"],
+    values=df["balance"].abs(),
+    color="balance",
+    color_continuous_scale="RdYlGn",
+    title="📦 Schuld-/Guthabenverteilung",
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+
+# Settlement progress
+st.divider()
+st.subheader("⚖️ Settlement Fortschritt")
+
+settlement_df = pd.DataFrame(get_all_settlements())
+
+if not settlement_df.empty:
+
+    settlement_df["amount"] = settlement_df["amount_cent"] / 100
+
+    progress = settlement_df.groupby("is_paid")["amount"].sum().reset_index()
+
+    progress["status"] = progress["is_paid"].map({True: "bezahlt", False: "offen"})
+
+    fig = px.pie(
+        progress, names="status", values="amount", title="🧾 Settlement Status"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# System Komplexität
+st.divider()
+st.subheader("🧠 System-Komplexität")
+
+debts = calculate_debts()
+
+summary = pd.DataFrame(
+    [
+        {
+            "Personen": len(persons),
+            "Items": len(items),
+            "Transfers nötig": len(debts),
+        }
+    ]
+)
+
+fig = px.bar(
+    summary.melt(),
+    x="variable",
+    y="value",
+    text_auto=True,
+    title="⚙️ Komplexität des Systems",
+)
+
+st.plotly_chart(fig, use_container_width=True)

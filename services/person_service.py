@@ -5,6 +5,8 @@ from db.database import get_session
 from services.calculation_service import (
     recalculate_item_consumers,
 )
+from services.cache_service import clear_cache
+import streamlit as st
 
 
 def create_person(name: str):
@@ -13,6 +15,7 @@ def create_person(name: str):
         session.add(person)
         session.flush()
         session.refresh(person)
+        clear_cache()
         return (
             {
                 "id": person.id,
@@ -23,6 +26,7 @@ def create_person(name: str):
         )
 
 
+@st.cache_data(show_spinner=False)
 def get_all_persons():
     with get_session() as session:
         persons = session.exec(select(Person)).all()
@@ -97,4 +101,5 @@ def delete_person(person_id: int) -> bool:
         session.delete(person)
 
         session.commit()
+        clear_cache()
         return True

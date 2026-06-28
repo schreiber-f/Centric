@@ -2,8 +2,10 @@ from db.models import Item, ItemConsumer, AufteilungsModus, Einheit
 from db.database import get_session
 from services.person_service import get_all_persons
 from services.calculation_service import recalculate_item_consumers
+from services.cache_service import clear_cache
 from sqlmodel import select
 from typing import Optional
+import streamlit as st
 
 
 def create_item(
@@ -53,6 +55,7 @@ def create_item(
         recalculate_item_consumers(item_id)
 
         session.refresh(item)
+        clear_cache()
         return {
             "id": item.id,
             "name": item.name,
@@ -63,6 +66,7 @@ def create_item(
         }
 
 
+@st.cache_data(show_spinner=False)
 def get_consumer(
     consumer_id: int,
 ):
@@ -86,6 +90,25 @@ def get_consumer(
         )
 
 
+@st.cache_data(show_spinner=False)
+def get_all_consumers():
+
+    with get_session() as session:
+        consumers = session.exec(select(ItemConsumer)).all()
+
+        return [
+            {
+                "id": consumer.id,
+                "item_id": consumer.item_id,
+                "user_id": consumer.user_id,
+                "modus": consumer.modus,
+                "wert": consumer.wert,
+            }
+            for consumer in consumers
+        ]
+
+
+@st.cache_data(show_spinner=False)
 def get_item_consumers(
     item_id: int,
 ):
@@ -137,6 +160,7 @@ def update_consumer(
         session.add(consumer)
         session.flush()
         session.refresh(consumer)
+        clear_cache()
 
         return {
             "id": consumer.id,
@@ -162,10 +186,12 @@ def delete_consumer(
             return False
 
         session.delete(consumer)
+        clear_cache()
 
         return True
 
 
+@st.cache_data(show_spinner=False)
 def get_item(
     item_id: int,
 ):
@@ -190,6 +216,7 @@ def get_item(
         )
 
 
+@st.cache_data(show_spinner=False)
 def get_all_items():
 
     with get_session() as session:
@@ -246,6 +273,7 @@ def update_item(
         session.add(item)
         session.flush()
         session.refresh(item)
+        clear_cache()
 
         return {
             "id": item.id,
@@ -274,6 +302,7 @@ def delete_item(item_id: int) -> bool:
             session.delete(consumer)
 
         session.delete(item)
+        clear_cache()
 
         return True
 
@@ -308,6 +337,7 @@ def add_all_persons_as_consumers(
             )
 
         session.commit()
+        clear_cache()
 
 
 def create_consumer(
@@ -343,6 +373,7 @@ def create_consumer(
         session.add(consumer)
         session.flush()
         session.refresh(consumer)
+        clear_cache()
 
         return {
             "id": consumer.id,
