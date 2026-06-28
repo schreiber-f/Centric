@@ -1,7 +1,15 @@
 from sqlmodel import create_engine, Session
 from contextlib import contextmanager
+import streamlit as st
+import os
+from dotenv import load_dotenv
 
-DB_URL = "sqlite:///fairshare_v2.db"
+load_dotenv()
+
+DB_URL = st.secrets.get(
+    "DATABASE_URL",
+    os.getenv("DATABASE_URL"),
+)
 
 engine = create_engine(DB_URL, echo=False)
 
