@@ -17,6 +17,9 @@ class Einheit(str, Enum):
     MILILITER = "Mililiter"
 
 
+SQLModel.metadata.clear()
+
+
 class Person(SQLModel, table=True):
     __tablename__: str = "persons"
     id: Optional[int] = Field(default=None, primary_key=True)
