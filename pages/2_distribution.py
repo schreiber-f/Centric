@@ -13,8 +13,8 @@ from services.item_service import (
     update_consumer,
     delete_consumer,
     create_consumer,
-    recalculate_item_consumers,
 )
+from services.calculation_service import recalculate_item_consumers
 import math
 
 st.title("⚖️ Artikel & Verteilung")

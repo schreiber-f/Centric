@@ -8,7 +8,7 @@ if "db_initialized" not in st.session_state:
 
 # 2. Seiten definieren (Wir erstellen eine echte extra Datei für die Startseite)
 home_seite = st.Page(
-    "pages/0_home.py", title="📊 Abrechnung & Übersicht", icon="💰", default=True
+    "pages/0_home.py", title="Abrechnung & Übersicht", icon="📊", default=True
 )
 adder_seite = st.Page("pages/1_adder.py", title="Personen und Items adden", icon="➕")
 distribution_page = st.Page(
@@ -16,13 +16,16 @@ distribution_page = st.Page(
     title="Artikel & Verteilung",
     icon="📊",
 )
-debug_seite = st.Page("pages/3_debug.py", title="Datenbank Debug", icon="⚙️")
+settlement_seite = st.Page(
+    "pages/3_settlements.py", title="Kostenverteilung", icon="💰"
+)
+debug_seite = st.Page("pages/4_debug.py", title="Datenbank Debug", icon="⚙️")
 
 # 3. Navigation anzeigen
 pg = st.navigation(
     {
         "Hauptmenü": [home_seite],
-        "Verwaltung": [adder_seite, distribution_page, debug_seite],
+        "Verwaltung": [adder_seite, distribution_page, settlement_seite, debug_seite],
     }
 )
 

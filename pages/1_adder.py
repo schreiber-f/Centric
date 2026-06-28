@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 
-from services import create_person, get_all_persons
+from services import create_person, get_all_persons, delete_person
 from services.item_service import create_item
 from db import Einheit
 
@@ -154,4 +154,17 @@ st.divider()
 st.subheader("Teilnehmer")
 
 for person in get_all_persons():
-    st.write(person["name"])
+    # Wir erstellen zwei Spalten: Eine breite für den Namen, eine schmale für den Button
+    col1, col2 = st.columns([0.8, 0.2])
+
+    with col1:
+        st.write(person["name"])
+
+    with col2:
+        # Ein eindeutiger Key ist wichtig, da wir in einer Schleife sind
+        if st.button("Löschen", key=f"delete_{person['id']}"):
+            if delete_person(person["id"]):
+                st.success(f"{person['name']} wurde gelöscht.")
+                st.rerun()  # Aktualisiert die Ansicht sofort
+            else:
+                st.error("Fehler beim Löschen der Person.")

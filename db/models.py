@@ -57,3 +57,6 @@ class Settlement(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
     note: str | None = None
+
+    # Das neue Feld:
+    is_paid: bool = Field(default=False)
