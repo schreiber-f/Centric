@@ -176,46 +176,46 @@ if not settlement_df.empty:
 # -----------------------
 # Saldoberechnung
 # -----------------------
+if not person_df.empty and not item_df.empty:
+    saldo = {}
 
-saldo = {}
+    for p in persons:
+        saldo[p["id"]] = 0
 
-for p in persons:
-    saldo[p["id"]] = 0
+    for item in items:
+        saldo[item["buyer_id"]] += item["gesamtbetrag_cent"] / 100
 
-for item in items:
-    saldo[item["buyer_id"]] += item["gesamtbetrag_cent"] / 100
+    for settlement in settlements:
 
-for settlement in settlements:
+        amount = settlement["amount_cent"] / 100
 
-    amount = settlement["amount_cent"] / 100
+        saldo[settlement["from_payer_id"]] += amount
 
-    saldo[settlement["from_payer_id"]] += amount
+        saldo[settlement["to_payer_id"]] -= amount
 
-    saldo[settlement["to_payer_id"]] -= amount
+    balance_df = pd.DataFrame(
+        [
+            {
+                "Person": p["name"],
+                "Saldo": saldo[p["id"]],
+            }
+            for p in persons
+        ]
+    )
 
-balance_df = pd.DataFrame(
-    [
-        {
-            "Person": p["name"],
-            "Saldo": saldo[p["id"]],
-        }
-        for p in persons
-    ]
-)
+    fig = px.bar(
+        balance_df,
+        x="Person",
+        y="Saldo",
+        color="Saldo",
+        title="🏦 Aktueller Saldo",
+        text_auto=True,
+    )
 
-fig = px.bar(
-    balance_df,
-    x="Person",
-    y="Saldo",
-    color="Saldo",
-    title="🏦 Aktueller Saldo",
-    text_auto=True,
-)
-
-st.plotly_chart(
-    fig,
-    use_container_width=True,
-)
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+    )
 
 # -----------------------
 # Einkäufe
