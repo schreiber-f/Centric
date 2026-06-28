@@ -2,7 +2,9 @@ import streamlit as st
 from db.init import init_db
 
 # 1. Datenbank initialisieren
-init_db()
+if "db_initialized" not in st.session_state:
+    init_db()
+    st.session_state.db_initialized = True
 
 # 2. Seiten definieren (Wir erstellen eine echte extra Datei für die Startseite)
 home_seite = st.Page(
