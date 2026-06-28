@@ -4,5 +4,5 @@ from db.models import *
 
 
 def init_db():
-    SQLModel.metadata.clear()
     SQLModel.metadata.create_all(engine)
+    print(SQLModel.metadata.tables.keys())
