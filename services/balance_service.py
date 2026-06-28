@@ -2,7 +2,8 @@ from collections import defaultdict
 from sqlmodel import select
 
 from db.models import AufteilungsModus
-from services.item_service import get_all_items, get_all_consumers
+from services.item_service import get_all_items
+from services.consumer_service import get_all_consumers
 from services.settlement_service import get_all_settlements
 from services.person_service import get_all_persons
 import streamlit as st
