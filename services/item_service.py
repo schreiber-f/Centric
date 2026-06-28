@@ -264,24 +264,23 @@ def update_item(
 
 
 def delete_item(item_id: int) -> bool:
-
     with get_session() as session:
+
+        consumers = session.exec(
+            select(ItemConsumer).where(ItemConsumer.item_id == item_id)
+        ).all()
+
+        for c in consumers:
+            session.delete(c)
 
         item = session.get(Item, item_id)
 
         if item is None:
             return False
 
-        consumers = session.exec(
-            select(ItemConsumer).where(ItemConsumer.item_id == item_id)
-        ).all()
-
-        for consumer in consumers:
-            session.delete(consumer)
-
         session.delete(item)
-        clear_cache()
 
+        clear_cache()
         return True
 
 
