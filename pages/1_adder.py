@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 
-from services import create_person, get_all_persons, delete_person
+from services.person_service import create_person, get_all_persons, delete_person
 from services.item_service import create_item
 from db import Einheit
 
