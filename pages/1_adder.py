@@ -2,7 +2,7 @@ import streamlit as st
 import json
 
 from services.person_service import create_person, delete_person
-from services.item_service import create_item
+from services.item_service import create_item, create_items_batch
 from db import Einheit
 from services.state_service import recompute_state
 
@@ -130,23 +130,46 @@ with tab_item:
                 try:
                     parsed_data = json.loads(json_input)
 
-                    # optional: direkt speichern
-                    if isinstance(parsed_data, list):
-
-                        for item in parsed_data:
-                            create_item(
-                                name=item["name"],
-                                betrag_cent=item["gesamtbetrag_cent"],
-                                buyer_id=item["buyer_id"],
-                                einheit=item.get("einheit"),
-                                menge=item.get("menge"),
-                            )
-
-                        st.success("JSON erfolgreich importiert!")
-                        st.toast("Import abgeschlossen", icon="📦")
-
-                    else:
+                    if not isinstance(parsed_data, list):
                         st.error("JSON muss eine Liste sein")
+                        st.stop()
+
+                    cleaned_items = []
+
+                    for item in parsed_data:
+
+                        name = item.get("name")
+                        betrag = item.get("gesamtbetrag_cent")
+
+                        if name is None or betrag is None:
+                            st.error("Ungültiges Item im JSON (name oder betrag fehlt)")
+                            continue
+
+                        einheit = item.get("einheit")
+                        if einheit is not None:
+                            einheit = Einheit(einheit)
+
+                        cleaned_items.append(
+                            {
+                                "name": name,
+                                "gesamtbetrag_cent": betrag,
+                                "menge": item.get("menge"),
+                                "einheit": einheit,
+                            }
+                        )
+
+                    if not cleaned_items:
+                        st.error("Keine gültigen Items zum Importieren")
+                        st.stop()
+
+                    # 🔥 HIER IST DER WICHTIGE CHANGE
+                    create_items_batch(
+                        items=cleaned_items,
+                        buyer_id=person_options[json_buyer_name],
+                    )
+
+                    st.success("JSON erfolgreich importiert!")
+                    st.toast("Import abgeschlossen", icon="📦")
 
                 except json.JSONDecodeError as e:
                     st.error(f"Ungültiges JSON: {e}")

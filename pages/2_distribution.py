@@ -33,6 +33,16 @@ item_options = {
 if "selected_item_id" not in st.session_state:
     st.session_state.selected_item_id = items[0]["id"]
 
+values = list(item_options.values())
+
+selected_id = st.session_state.get("selected_item_id")
+
+if selected_id in values:
+    index = values.index(selected_id)
+else:
+    index = 0
+    st.session_state.selected_item_id = values[0] if values else None
+
 selected_label = st.selectbox(
     "Artikel auswählen",
     options=list(item_options.keys()),

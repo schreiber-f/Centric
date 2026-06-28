@@ -66,6 +66,86 @@ def create_item(
         }
 
 
+def create_items_batch(
+    items: list[dict],
+    buyer_id: int,
+):
+    """
+    Batch-Insert für mehrere Items (z.B. JSON Import)
+    + deutlich weniger DB Calls + kein connection storm
+    """
+
+    with get_session() as session:
+
+        persons = get_all_persons()
+
+        if not persons:
+            raise ValueError("Keine Personen vorhanden")
+
+        modus = AufteilungsModus.GLEICHMAESSIG
+
+        created_items = []
+
+        for data in items:
+
+            item = Item(
+                name=data["name"],
+                gesamtbetrag_cent=data["gesamtbetrag_cent"],
+                buyer_id=buyer_id,
+                menge=data.get("menge"),
+                einheit=data.get("einheit"),
+            )
+
+            session.add(item)
+            session.flush()  # damit item.id verfügbar ist
+
+            item_id = item.id
+
+            if item_id is None:
+                raise ValueError("Item-ID fehlt")
+
+            wert_pro_person = data["gesamtbetrag_cent"] / len(persons)
+
+            for person in persons:
+
+                consumer_id = person["id"]
+
+                if consumer_id is None:
+                    continue
+
+                session.add(
+                    ItemConsumer(
+                        item_id=item_id,
+                        user_id=consumer_id,
+                        modus=modus,
+                        wert=wert_pro_person,
+                    )
+                )
+
+            created_items.append(item)
+
+        # 🔥 EIN EINZIGER COMMIT FÜR ALLES
+        session.commit()
+
+    # 🔥 NACH DER TRANSACTION (wichtig!)
+    for item in created_items:
+        recalculate_item_consumers(item.id)
+
+    clear_cache()
+
+    return [
+        {
+            "id": item.id,
+            "name": item.name,
+            "gesamtbetrag_cent": item.gesamtbetrag_cent,
+            "buyer_id": item.buyer_id,
+            "menge": item.menge,
+            "einheit": item.einheit,
+        }
+        for item in created_items
+    ]
+
+
 def get_consumer(
     consumer_id: int,
 ):

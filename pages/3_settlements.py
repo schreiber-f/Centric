@@ -9,6 +9,7 @@ from services.debt_service import (
 from services.settlement_service import (
     get_all_settlements,
     update_settlement,
+    delete_settlement,
 )
 
 st.set_page_config(layout="wide")
@@ -83,6 +84,7 @@ if settlements:
                 "An": person_lookup[settlement["to_payer_id"]],
                 "Betrag (€)": settlement["amount_cent"] / 100,
                 "Bezahlt": settlement["is_paid"],
+                "Delete": False,
                 "Datum": settlement["created_at"],
             }
         )
@@ -93,15 +95,17 @@ if settlements:
         df,
         hide_index=True,
         use_container_width=True,
-        disabled=[
-            "id",
-            "Von",
-            "An",
-            "Betrag (€)",
-            "Datum",
-        ],
-        column_config={"Bezahlt": st.column_config.CheckboxColumn("Bezahlt")},
+        disabled=["id", "Von", "An", "Betrag (€)", "Datum"],
+        column_config={
+            "Bezahlt": st.column_config.CheckboxColumn("Bezahlt"),
+            "Delete": st.column_config.CheckboxColumn("🗑️ Löschen"),
+        },
     )
+    if st.button("🗑️ Markierte löschen"):
+        for _, row in edited.iterrows():
+            if row.get("Delete"):
+                delete_settlement(int(row["id"]))
+        st.rerun()
 
     if st.button("💾 Änderungen speichern"):
 
