@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DB_URL = st.secrets.get(
-    "DATABASE_URL",
-    os.getenv("DATABASE_URL"),
+    "NEON_CONNECTION",
+    os.getenv("NEON_CONNECTION"),
 )
 
 engine = create_engine(DB_URL, echo=False)
