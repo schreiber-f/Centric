@@ -66,7 +66,6 @@ def create_item(
         }
 
 
-@st.cache_data(show_spinner=False)
 def get_consumer(
     consumer_id: int,
 ):
@@ -90,7 +89,6 @@ def get_consumer(
         )
 
 
-@st.cache_data(show_spinner=False)
 def get_item_consumers(
     item_id: int,
 ):
@@ -173,7 +171,6 @@ def delete_consumer(
         return True
 
 
-@st.cache_data(show_spinner=False)
 def get_item(
     item_id: int,
 ):
@@ -198,7 +195,6 @@ def get_item(
         )
 
 
-@st.cache_data(show_spinner=False)
 def get_all_items():
 
     with get_session() as session:

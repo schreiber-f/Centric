@@ -26,7 +26,6 @@ def create_person(name: str):
         )
 
 
-@st.cache_data(show_spinner=False)
 def get_all_persons():
     with get_session() as session:
         persons = session.exec(select(Person)).all()

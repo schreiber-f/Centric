@@ -51,7 +51,6 @@ def apply_settlements(
         balances[settlement["to_payer_id"]] -= settlement["amount_cent"]
 
 
-@st.cache_data
 def get_balances() -> dict[int, int]:
 
     persons = get_all_persons()
@@ -104,12 +103,10 @@ def get_balances() -> dict[int, int]:
     return dict(balances)
 
 
-@st.cache_data
 def get_balance(person_id: int) -> int:
     return get_balances().get(person_id, 0)
 
 
-@st.cache_data
 def get_total_paid(person_id: int) -> int:
 
     return sum(
@@ -119,7 +116,6 @@ def get_total_paid(person_id: int) -> int:
     )
 
 
-@st.cache_data
 def get_total_consumed(person_id: int) -> int:
 
     items = get_all_items()

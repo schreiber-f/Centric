@@ -4,7 +4,6 @@ from sqlmodel import select
 import streamlit as st
 
 
-@st.cache_data(show_spinner=False)
 def get_all_consumers():
 
     with get_session() as session:

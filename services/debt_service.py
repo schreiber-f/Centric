@@ -31,7 +31,6 @@ def split_balances(
     return creditors, debtors
 
 
-@st.cache_data
 def calculate_debts() -> list[dict]:
     """
     Berechnet die minimale Anzahl an Überweisungen.
@@ -76,7 +75,6 @@ def calculate_debts() -> list[dict]:
     return debts
 
 
-@st.cache_data
 def get_debts_for_person(
     person_id: int,
 ) -> list[dict]:
@@ -91,7 +89,6 @@ def get_debts_for_person(
     ]
 
 
-@st.cache_data
 def get_creditors_for_person(
     person_id: int,
 ) -> list[dict]:
@@ -102,7 +99,6 @@ def get_creditors_for_person(
     return [debt for debt in calculate_debts() if debt["from_payer_id"] == person_id]
 
 
-@st.cache_data
 def get_debtors_for_person(
     person_id: int,
 ) -> list[dict]:
@@ -113,7 +109,6 @@ def get_debtors_for_person(
     return [debt for debt in calculate_debts() if debt["to_payer_id"] == person_id]
 
 
-@st.cache_data
 def get_total_debt(
     person_id: int,
 ) -> int:

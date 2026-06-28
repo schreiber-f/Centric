@@ -1,9 +1,13 @@
 import streamlit as st
 import json
 
-from services.person_service import create_person, get_all_persons, delete_person
+from services.person_service import create_person, delete_person
 from services.item_service import create_item
 from db import Einheit
+from services.state_service import recompute_state
+
+state = recompute_state()
+persons = state["persons"]
 
 st.title("➕ Daten hinzufügen")
 
@@ -32,8 +36,6 @@ with tab_person:
 # -------------------------
 with tab_item:
     st.subheader("Neuer Einkauf")
-
-    persons = get_all_persons()
 
     if not persons:
         st.warning("Bitte zuerst Personen anlegen.")
@@ -110,12 +112,15 @@ with tab_item:
     {
         "name": "Cola",
         "gesamtbetrag_cent": 400,
-        "buyer_id": 1,
         "einheit": null,
         "menge": null
     }
 ]""",
                 height=250,
+            )
+            json_buyer_name = st.selectbox(
+                "Gekauft von",
+                options=list(person_options.keys()),
             )
 
             submitted_json = st.form_submit_button("JSON verarbeiten")
@@ -153,7 +158,7 @@ with tab_item:
 st.divider()
 st.subheader("Teilnehmer")
 
-for person in get_all_persons():
+for person in persons:
     # Wir erstellen zwei Spalten: Eine breite für den Namen, eine schmale für den Button
     col1, col2 = st.columns([0.8, 0.2])
 

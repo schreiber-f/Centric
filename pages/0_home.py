@@ -2,19 +2,20 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from services.person_service import get_all_persons
-from services.item_service import get_all_items
-from services.settlement_service import get_all_settlements
-from services.debt_service import calculate_debts
-from services.balance_service import get_balances, get_total_paid, get_total_consumed
+from services.balance_service import get_total_paid, get_total_consumed
+from services.state_service import recompute_state
 
 st.set_page_config(page_title="Centric Dashboard", layout="wide")
 
 st.title("📊 Centric Dashboard")
 
-persons = get_all_persons()
-items = get_all_items()
-settlements = get_all_settlements()
+state = recompute_state()
+
+persons = state["persons"]
+items = state["items"]
+settlements = state["settlements"]
+debts = state["debts"]
+balances = state["balances"]
 
 person_df = pd.DataFrame(persons)
 item_df = pd.DataFrame(items)
@@ -249,7 +250,7 @@ for p in persons:
             "name": p["name"],
             "paid": get_total_paid(p["id"]) / 100,
             "consumed": get_total_consumed(p["id"]) / 100,
-            "balance": get_balances().get(p["id"], 0) / 100,
+            "balance": state["balances"].get(p["id"], 0) / 100,
         }
     )
 
@@ -268,8 +269,6 @@ st.plotly_chart(fig, use_container_width=True)
 # Debt network flow
 st.divider()
 st.subheader("🔁 Optimale Geldflüsse")
-
-debts = calculate_debts()
 
 if debts:
 
@@ -293,8 +292,6 @@ if debts:
 st.divider()
 st.subheader("💸 Schuldverteilung")
 
-balances = get_balances()
-
 df = pd.DataFrame(
     [{"name": p["name"], "balance": balances[p["id"]] / 100} for p in persons]
 )
@@ -315,7 +312,7 @@ st.plotly_chart(fig, use_container_width=True)
 st.divider()
 st.subheader("⚖️ Settlement Fortschritt")
 
-settlement_df = pd.DataFrame(get_all_settlements())
+settlement_df = pd.DataFrame(state["settlements"])
 
 if not settlement_df.empty:
 
@@ -335,8 +332,6 @@ if not settlement_df.empty:
 # System Komplexität
 st.divider()
 st.subheader("🧠 System-Komplexität")
-
-debts = calculate_debts()
 
 summary = pd.DataFrame(
     [
